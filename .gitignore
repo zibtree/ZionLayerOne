@@ -1,0 +1,11 @@
+bin/
+data/
+*.log
+*.db
+.env
+.env.local
+node_modules/
+__pycache__/
+*.pyc
+dist/
+*.wasm

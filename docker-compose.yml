@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  validator1:
+    build: .
+    ports:
+      - "8545:8545"
+    environment:
+      - VALIDATOR_ADDR=0xValidator1000000000000000000000001
+    volumes:
+      - v1data:/data
+    command: start --rpc-port 8545 --validator 0xValidator1000000000000000000000001
+
+  validator2:
+    build: .
+    ports:
+      - "8546:8545"
+    environment:
+      - VALIDATOR_ADDR=0xValidator2000000000000000000000002
+    volumes:
+      - v2data:/data
+    command: start --rpc-port 8545 --validator 0xValidator2000000000000000000000002
+
+  validator3:
+    build: .
+    ports:
+      - "8547:8545"
+    environment:
+      - VALIDATOR_ADDR=0xValidator3000000000000000000000003
+    volumes:
+      - v3data:/data
+    command: start --rpc-port 8545 --validator 0xValidator3000000000000000000000003
+
+volumes:
+  v1data:
+  v2data:
+  v3data:
