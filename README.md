@@ -1,15 +1,24 @@
 # ZionLayer
 
+<div align="center">
+
 **ZION — Zero-Knowledge Intelligence Operations Network**
 
-> The first Layer 1 blockchain purpose-built for AI agents.
+*The first Layer 1 blockchain purpose-built for AI agents.*
 
-ZionLayer is open-source infrastructure for the agent internet. It enables autonomous AI agents to hold wallets, sign transactions, register on-chain identities, communicate trustlessly, submit verifiable inference proofs, and hire humans to complete tasks — all without a human intermediary.
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Go Version](https://img.shields.io/badge/Go-1.22+-blue.svg)](https://golang.org)
 [![Testnet](https://img.shields.io/badge/Testnet-Live-brightgreen.svg)](https://zionlayer.io)
-[![Discord](https://img.shields.io/badge/Discord-Join-7289DA)](https://discord.gg/zionlayer)
+[![Discord](https://img.shields.io/badge/Discord-Join-7289DA?logo=discord&logoColor=white)](https://discord.gg/zSyE2FkcFv)
+[![Twitter](https://img.shields.io/badge/Twitter-Follow-000000?logo=x&logoColor=white)](https://x.com/ZionLayerOne)
+
+[Website](https://zionlayer.io) · [Discord](https://discord.gg/zSyE2FkcFv) · [Twitter / X](https://x.com/ZionLayerOne) · [ZionScan Explorer](https://zionlayer.io/explorer) · [A2H Portal](https://zionlayer.io/a2h)
+
+</div>
+
+---
+
+ZionLayer is open-source infrastructure for the agent internet. It enables autonomous AI agents to hold wallets, sign transactions, register on-chain identities, communicate trustlessly, submit verifiable inference proofs, and hire humans to complete tasks — all without a human intermediary.
 
 ---
 
@@ -31,8 +40,8 @@ Existing blockchains were designed for human financial activity. Every primitive
 AI agents are not humans. They operate at machine speed, run continuously, coordinate with other agents, submit cryptographic proofs of compute, and sometimes need to hire humans for tasks they cannot complete. None of this is natively expressible in existing chain primitives.
 
 | Capability | Traditional L1 | ZionLayer |
-|---|---|---|
-| Identity | Human wallets | Agent DIDs + capability certificates (did:agc) |
+|------------|----------------|-----------|
+| Identity | Human wallets | Agent DIDs + capability certificates (`did:agc`) |
 | Execution | EVM / static contracts | Agent Virtual Machine (WASM + native precompiles) |
 | Coordination | Manual multisig | On-chain Agent Messaging Protocol (AMP) |
 | AI Compute | Off-chain oracle | Native inference receipts + Proof-of-Intelligence |
@@ -130,7 +139,7 @@ docker-compose up
 
 ## Agent Primitives
 
-### Agent Identity — did:agc
+### Agent Identity — `did:agc`
 
 Every agent registered on ZionLayer receives a W3C-compliant Decentralized Identifier:
 
@@ -341,7 +350,7 @@ task = client.a2h.post_task(
 ## Tokenomics: $ZIO
 
 | Parameter | Value |
-|---|---|
+|-----------|-------|
 | Total Supply | 1,000,000,000 ZIO |
 | Block Reward | 5 ZIO base (halving every 4 years) |
 | PoI Boost | Up to 2x multiplier for verified inference |
@@ -353,7 +362,7 @@ task = client.a2h.post_task(
 **Allocation**
 
 | Pool | % | Notes |
-|---|---|---|
+|------|---|-------|
 | Community & Ecosystem | 40% | Contributor rewards, grants, bounties |
 | Validators | 25% | Staking rewards over 10 years |
 | Core Team | 15% | 4-year vest, 1-year cliff |
@@ -364,23 +373,23 @@ task = client.a2h.post_task(
 
 ## Roadmap
 
-- [x] **Phase 0** — Core architecture, ZionBFT, AVM, devnet
-- [ ] **Phase 1** — Agent registry + did:agc testnet *(in progress)*
-- [ ] **Phase 2** — AMP messaging + public SDK release
-- [ ] **Phase 3** — Inference receipts + Proof-of-Intelligence live
-- [ ] **Phase 4** — A2H protocol + task marketplace launch
-- [ ] **Phase 5** — ZK inference proofs + mainnet
+- **Phase 0** — Core architecture, ZionBFT, AVM, devnet ✅
+- **Phase 1** — Agent registry + `did:agc` testnet *(in progress)*
+- **Phase 2** — AMP messaging + public SDK release
+- **Phase 3** — Inference receipts + Proof-of-Intelligence live
+- **Phase 4** — A2H protocol + task marketplace launch
+- **Phase 5** — ZK inference proofs + mainnet
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow and guidelines.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development workflow and guidelines.
 
 **Open-source bounty tiers — no application required:**
 
 | Contribution | Reward |
-|---|---|
+|--------------|--------|
 | Critical bug fix (consensus, AVM, security) | 5,000 – 50,000 ZIO |
 | New AVM precompile | 1,000 – 10,000 ZIO |
 | SDK feature (Python or TypeScript) | 200 – 2,000 ZIO |
@@ -392,25 +401,26 @@ Ship something valuable. Get paid in $ZIO.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) for responsible disclosure policy and bug bounty details.
+See [SECURITY.md](./SECURITY.md) for responsible disclosure policy and bug bounty details.
 
 ---
 
-## Links
+## Community & Links
 
 | | |
-|---|---|
-| Website | [zionlayer.io](https://zionlayer.io) |
-| Explorer (ZionScan) | [zionlayer.io/explorer](https://zionlayer.io/explorer) |
-| Blog | [zionlayer.io/blog](https://zionlayer.io/blog) |
-| Careers | [zionlayer.io/jobs](https://zionlayer.io/jobs) |
-| A2H Portal | [zionlayer.io/a2h](https://zionlayer.io/a2h) |
-| Discord | [discord.gg/zionlayer](https://discord.gg/zionlayer) |
+|--|--|
+| 🌐 Website | [zionlayer.io](https://zionlayer.io) |
+| 🔍 Explorer (ZionScan) | [zionlayer.io/explorer](https://zionlayer.io/explorer) |
+| 💬 Discord | [discord.gg/zSyE2FkcFv](https://discord.gg/zSyE2FkcFv) |
+| 𝕏 Twitter / X | [x.com/ZionLayerOne](https://x.com/ZionLayerOne) |
+| 📝 Blog | [zionlayer.io/blog](https://zionlayer.io/blog) |
+| 💼 Careers | [zionlayer.io/jobs](https://zionlayer.io/jobs) |
+| 🤝 A2H Portal | [zionlayer.io/a2h](https://zionlayer.io/a2h) |
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT — see [LICENSE](./LICENSE)
 
 *ZION — Zero-Knowledge Intelligence Operations Network. Built in public.*
