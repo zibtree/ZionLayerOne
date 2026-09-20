@@ -1,15 +1,178 @@
 package consensus
-import("errors";"math/big";"sync";"time";"github.com/zionlayer/zionlayer/core/block";"github.com/zionlayer/zionlayer/core/state";"github.com/zionlayer/zionlayer/core/transaction";"github.com/zionlayer/zionlayer/vm";"go.uber.org/zap")
-const(BlockTime=2*time.Second;MinValidatorStake=10000;BlockReward=5)
-var(ErrInvalidBlock=errors.New("invalid block");ErrUnknownValidator=errors.New("unknown validator"))
-type Validator struct{Address string;PublicKey []byte;Stake *big.Int;PoIScore float64;VotingPower int64}
-type ZionBFT struct{mu sync.RWMutex;validators map[string]*Validator;state *state.StateDB;logger *zap.Logger;height uint64;tip *block.Block;blockCh chan *block.Block;quitCh chan struct{};avm *vm.AVM}
-func NewZionBFT(s *state.StateDB,l *zap.Logger)*ZionBFT{return &ZionBFT{validators:map[string]*Validator{},state:s,logger:l,blockCh:make(chan *block.Block,64),quitCh:make(chan struct{}),avm:vm.NewAVM(l)}}
-func(e *ZionBFT)AddValidator(v *Validator)error{if v==nil||v.Stake==nil{return errors.New("invalid validator")};min:=new(big.Int).Mul(big.NewInt(MinValidatorStake),new(big.Int).Exp(big.NewInt(10),big.NewInt(18),nil));if v.Stake.Cmp(min)<0{return errors.New("stake below minimum")};e.mu.Lock();defer e.mu.Unlock();e.validators[v.Address]=v;return nil}
-func(e *ZionBFT)Start(addr string,p <-chan []*transaction.Tx){go e.runProposer(addr,p)}
-func(e *ZionBFT)Stop(){select{case<-e.quitCh:default:close(e.quitCh)}}
-func(e *ZionBFT)Blocks()<-chan *block.Block{return e.blockCh}
-func(e *ZionBFT)ValidateBlock(b *block.Block)error{if b==nil{return ErrInvalidBlock};e.mu.RLock();defer e.mu.RUnlock();if b.Header.Height!=e.height+1{return ErrInvalidBlock};if e.tip!=nil&&b.Header.PrevHash!=e.tip.Hash(){return ErrInvalidBlock};if _,ok:=e.validators[string(b.Header.ValidatorAddr)];!ok{return ErrUnknownValidator};if b.Header.TxRoot!=block.TxRoot(b.Txs){return ErrInvalidBlock};return nil}
-func(e *ZionBFT)runProposer(addr string,p <-chan []*transaction.Tx){ticker:=time.NewTicker(BlockTime);defer ticker.Stop();for{select{case<-e.quitCh:return;case<-ticker.C:var txs []*transaction.Tx;select{case txs=<-p:default:};e.mu.Lock();var prev [32]byte;if e.tip!=nil{prev=e.tip.Hash()};b:=block.NewBlock(e.height+1,prev,[]byte(addr),txs);ctx:=&vm.ExecutionContext{Caller:"system",Origin:addr,GasLimit:30_000_000,Height:b.Header.Height,State:e.state};for _,tx:=range txs{if e:=e.avm.ApplyTransaction(ctx,tx);e!=nil{e.logger.Warn("transaction rejected",zap.Error(e))}};b.Finalize(e.state.RootHash());e.height++;e.tip=b;e.mu.Unlock();e.applyBlockReward(addr);select{case e.blockCh<-b:default:}}}}
-func(e *ZionBFT)applyBlockReward(addr string){r:=new(big.Int).Mul(big.NewInt(BlockReward),new(big.Int).Exp(big.NewInt(10),big.NewInt(18),nil));a:=e.state.GetAccount(addr);e.state.SetBalance(addr,new(big.Int).Add(a.Balance,r))}
-func(e *ZionBFT)VotingPower(v *Validator)int64{s:=new(big.Int).Div(v.Stake,new(big.Int).Exp(big.NewInt(10),big.NewInt(18),nil)).Int64();return s+int64(v.PoIScore*100)}
+
+import (
+	"errors"
+	"math/big"
+	"sync"
+	"time"
+
+	"github.com/zionlayer/zionlayer/core/block"
+	"github.com/zionlayer/zionlayer/core/state"
+	"github.com/zionlayer/zionlayer/core/transaction"
+	"github.com/zionlayer/zionlayer/vm"
+	"go.uber.org/zap"
+)
+
+const (
+	BlockTime         = 2 * time.Second
+	MinValidatorStake = 10000
+	BlockReward       = 5
+)
+
+var (
+	ErrInvalidBlock     = errors.New("invalid block")
+	ErrUnknownValidator = errors.New("unknown validator")
+)
+
+type Validator struct {
+	Address     string
+	PublicKey   []byte
+	Stake       *big.Int
+	PoIScore    float64
+	VotingPower int64
+}
+
+type ZionBFT struct {
+	mu         sync.RWMutex
+	validators map[string]*Validator
+	state      *state.StateDB
+	logger     *zap.Logger
+	height     uint64
+	tip        *block.Block
+	blockCh    chan *block.Block
+	quitCh     chan struct{}
+	avm        *vm.AVM
+}
+
+func NewZionBFT(s *state.StateDB, l *zap.Logger) *ZionBFT {
+	return &ZionBFT{
+		validators: map[string]*Validator{},
+		state:      s,
+		logger:     l,
+		blockCh:    make(chan *block.Block, 64),
+		quitCh:     make(chan struct{}),
+		avm:        vm.NewAVM(l),
+	}
+}
+
+func (e *ZionBFT) AddValidator(v *Validator) error {
+	if v == nil || v.Stake == nil {
+		return errors.New("invalid validator")
+	}
+	min := new(big.Int).Mul(
+		big.NewInt(MinValidatorStake),
+		new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil),
+	)
+	if v.Stake.Cmp(min) < 0 {
+		return errors.New("stake below minimum")
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.validators[v.Address] = v
+	return nil
+}
+
+func (e *ZionBFT) Start(addr string, p <-chan []*transaction.Tx) {
+	go e.runProposer(addr, p)
+}
+
+func (e *ZionBFT) Stop() {
+	select {
+	case <-e.quitCh:
+	default:
+		close(e.quitCh)
+	}
+}
+
+func (e *ZionBFT) Blocks() <-chan *block.Block {
+	return e.blockCh
+}
+
+func (e *ZionBFT) ValidateBlock(b *block.Block) error {
+	if b == nil {
+		return ErrInvalidBlock
+	}
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	if b.Header.Height != e.height+1 {
+		return ErrInvalidBlock
+	}
+	if e.tip != nil && b.Header.PrevHash != e.tip.Hash() {
+		return ErrInvalidBlock
+	}
+	if _, ok := e.validators[string(b.Header.ValidatorAddr)]; !ok {
+		return ErrUnknownValidator
+	}
+	if b.Header.TxRoot != block.TxRoot(b.Txs) {
+		return ErrInvalidBlock
+	}
+	return nil
+}
+
+func (e *ZionBFT) runProposer(addr string, p <-chan []*transaction.Tx) {
+	ticker := time.NewTicker(BlockTime)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-e.quitCh:
+			return
+		case <-ticker.C:
+			var txs []*transaction.Tx
+			select {
+			case txs = <-p:
+			default:
+			}
+
+			e.mu.Lock()
+			var prev [32]byte
+			if e.tip != nil {
+				prev = e.tip.Hash()
+			}
+			b := block.NewBlock(e.height+1, prev, []byte(addr), txs)
+			ctx := &vm.ExecutionContext{
+				Caller:   "system",
+				Origin:   addr,
+				GasLimit: 30_000_000,
+				Height:   b.Header.Height,
+				State:    e.state,
+			}
+
+			for _, tx := range txs {
+				if err := e.avm.ApplyTransaction(ctx, tx); err != nil {
+					e.logger.Warn("transaction rejected", zap.Error(err))
+				}
+			}
+
+			b.Finalize(e.state.RootHash())
+			e.height++
+			e.tip = b
+			e.mu.Unlock()
+
+			e.applyBlockReward(addr)
+
+			select {
+			case e.blockCh <- b:
+			default:
+			}
+		}
+	}
+}
+
+func (e *ZionBFT) applyBlockReward(addr string) {
+	r := new(big.Int).Mul(
+		big.NewInt(BlockReward),
+		new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil),
+	)
+	a := e.state.GetAccount(addr)
+	e.state.SetBalance(addr, new(big.Int).Add(a.Balance, r))
+}
+
+func (e *ZionBFT) VotingPower(v *Validator) int64 {
+	s := new(big.Int).Div(
+		v.Stake,
+		new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil),
+	).Int64()
+	return s + int64(v.PoIScore*100)
+}

@@ -6,41 +6,54 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   validate:
-    name: Validate Repository
+    name: Go protocol validation
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.22"
+          cache: true
 
-      - name: Check Go syntax
+      - name: Verify formatting
         run: |
-          find . -name "*.go" -not -path "./vendor/*" | while read f; do
-            gofmt -l "$f"
-          done
-          echo "Syntax check complete"
+          files=$(find . -name "*.go" -not -path "./vendor/*")
+          test -z "$(gofmt -l $files)"
 
-      - name: Validate project structure
-        run: |
-          for dir in core consensus vm rpc sdk cmd; do
-            if [ -d "$dir" ]; then
-              echo "OK: $dir"
-            else
-              echo "WARNING: $dir missing"
-            fi
-          done
+      - name: Run tests
+        run: go test ./...
 
-      - name: Validate documentation
+      - name: Race test
+        run: go test ./... -race
+
+      - name: Static analysis
+        run: go vet ./...
+
+      - name: Build node
+        run: go build ./cmd/ziond
+
+      - name: Validate repository structure
         run: |
-          for f in README.md CONTRIBUTING.md SECURITY.md LICENSE; do
-            if [ -f "$f" ]; then
-              echo "OK: $f"
-            else
-              echo "MISSING: $f"
-            fi
-          done
+          test -d core
+          test -d consensus
+          test -d vm
+          test -d rpc
+          test -d sdk
+          test -d cmd/ziond
+
+      - name: Validate protocol docs
+        run: |
+          test -f README.md
+          test -f CONTRIBUTING.md
+          test -f SECURITY.md
+          test -f LICENSE

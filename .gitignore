@@ -1,11 +1,23 @@
+# Build artifacts
 bin/
+dist/
+
+# Local node state
 data/
-*.log
 *.db
+*.log
+
+# Secrets
 .env
 .env.local
+*.key
+*.pem
+*.seed
+
+# Language caches
 node_modules/
 __pycache__/
 *.pyc
-dist/
+
+# Generated contract artifacts
 *.wasm

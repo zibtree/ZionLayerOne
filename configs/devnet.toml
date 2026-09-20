@@ -1,34 +1,42 @@
+# ZionLayer development network configuration
+# Updated: September 20, 2026
+
 [chain]
 id = 1
 name = "ZionLayer Devnet"
 block_time = "2s"
+protocol_version = "0.2.0"
 
 [consensus]
 type = "zionbft"
-min_validator_stake = "10000000000000000000000"  # 10,000 AGC
+mode = "proposer-devnet"
+min_validator_stake = "10000000000000000000000" # 10,000 ZIO base units
 
 [rpc]
 port = 8545
 cors_origins = ["*"]
+max_body_bytes = 2097152
 
 [p2p]
 port = 9000
 max_peers = 50
+status = "planned"
 
 [data]
 dir = "./data"
-db = "leveldb"
+db = "snapshot-json"
+persistence = true
 
 [log]
 level = "info"
 format = "json"
 
 [genesis]
-# Prefunded devnet accounts
+# Prefunded development accounts. These values are devnet-only.
 [[genesis.accounts]]
 address = "0xDevnetFaucet0000000000000000000000001"
-balance = "100000000000000000000000000"  # 100M AGC
+balance = "100000000000000000000000000" # 100M ZIO
 
 [[genesis.accounts]]
 address = "0xValidator1000000000000000000000001"
-balance = "1000000000000000000000000"    # 1M AGC
+balance = "1000000000000000000000000" # 1M ZIO
