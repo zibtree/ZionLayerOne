@@ -1,0 +1,3 @@
+package state
+import("math/big";"testing";"github.com/zionlayer/zionlayer/core/transaction")
+func TestA2HLifecycle(t *testing.T){s:=NewStateDB();s.SetBalance("agent",big.NewInt(100));task:=&transaction.A2HTask{AgentID:"agent",Title:"Test",Description:"Do work",Reward:big.NewInt(100),Deadline:10};esc:="a2h_escrow_"+task.ComputeID();if e:=s.Transfer("agent",esc,task.Reward);e!=nil{t.Fatal(e)};if e:=s.PostTask(task,1);e!=nil{t.Fatal(e)};if e:=s.ClaimTask(task.ID,"human",2);e!=nil{t.Fatal(e)};done,e:=s.CompleteTask(task.ID,"human");if e!=nil{t.Fatal(e)};if e=s.Transfer("a2h_escrow_"+done.ID,"human",done.Reward);e!=nil{t.Fatal(e)};if s.GetAccount("human").Balance.Cmp(big.NewInt(100))!=0{t.Fatal("reward not released")}}

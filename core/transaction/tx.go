@@ -1,139 +1,27 @@
 package transaction
 
-import (
-	"crypto/sha256"
-	"encoding/json"
-	"math/big"
-)
-
-// TxType classifies the transaction.
+import ("crypto/ed25519";"crypto/sha256";"encoding/hex";"encoding/json";"errors";"math/big")
 type TxType uint8
-
-const (
-	TxTransfer          TxType = iota // standard token transfer
-	TxAgentRegister                   // register a new agent DID
-	TxAgentMessage                    // agent-to-agent message
-	TxAgentDelegate                   // delegate capability to another agent
-	TxDeployContract                  // deploy AVM contract
-	TxCallContract                    // call AVM contract
-	TxInferenceReceipt                // submit verifiable inference proof
-	TxValidatorStake                  // stake tokens as validator
-	TxValidatorUnstake                // unstake tokens
-)
-
-// Capability represents a named agent capability.
-type Capability struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-}
-
-// AgentDID is a decentralized identifier anchored on-chain.
-type AgentDID struct {
-	ID           string            `json:"id"`            // did:agc:0x...
-	Controller   string            `json:"controller"`    // owner address (hex)
-	Capabilities []Capability      `json:"capabilities"`
-	PublicKey    []byte            `json:"publicKey"`
-	Metadata     map[string]string `json:"metadata"`
-}
-
-// MessageType classifies agent messages.
+const (TxTransfer TxType=iota;TxAgentRegister;TxAgentMessage;TxAgentDelegate;TxDeployContract;TxCallContract;TxInferenceReceipt;TxValidatorStake;TxValidatorUnstake;TxA2HPost;TxA2HClaim;TxA2HComplete)
+const ChainID uint64=1
+var(ErrInvalidSignature=errors.New("invalid transaction signature");ErrInvalidPublicKey=errors.New("invalid public key");ErrInvalidAddress=errors.New("public key does not match sender address");ErrInvalidValue=errors.New("transaction value must be non-negative"))
+type Capability struct{Name string;Version string}
+type AgentDID struct{ID string;Controller string;Capabilities []Capability;PublicKey []byte;Metadata map[string]string}
 type MessageType string
-
-const (
-	MsgTask     MessageType = "TASK"
-	MsgResult   MessageType = "RESULT"
-	MsgDelegate MessageType = "DELEGATE"
-	MsgRevoke   MessageType = "REVOKE"
-)
-
-// AgentMessage is an on-chain structured message between agents.
-type AgentMessage struct {
-	From    string      `json:"from"`
-	To      string      `json:"to"`
-	Type    MessageType `json:"type"`
-	Payload []byte      `json:"payload"`
-	Nonce   uint64      `json:"nonce"`
-}
-
-// InferenceReceipt is a verifiable proof of AI inference.
-type InferenceReceipt struct {
-	AgentID    string `json:"agentId"`
-	ModelHash  []byte `json:"modelHash"`  // IPFS CID bytes
-	InputHash  []byte `json:"inputHash"`
-	OutputHash []byte `json:"outputHash"`
-	Timestamp  int64  `json:"timestamp"`
-	ProverSig  []byte `json:"proverSig"`
-}
-
-// Tx is a signed transaction on ZionLayer.
-type Tx struct {
-	Type      TxType          `json:"type"`
-	From      string          `json:"from"`    // sender address (hex)
-	To        string          `json:"to"`      // recipient address (hex)
-	Value     *big.Int        `json:"value"`   // $ZIO in smallest unit
-	Gas       uint64          `json:"gas"`
-	GasPrice  *big.Int        `json:"gasPrice"`
-	Nonce     uint64          `json:"nonce"`
-	Data      json.RawMessage `json:"data"`    // type-specific payload
-	Signature []byte          `json:"sig"`
-}
-
-// Hash returns the SHA-256 hash of the transaction (excluding signature).
-func (tx *Tx) Hash() [32]byte {
-	cp := *tx
-	cp.Signature = nil
-	data, _ := json.Marshal(cp)
-	return sha256.Sum256(data)
-}
-
-// NewTransferTx creates a basic token transfer transaction.
-func NewTransferTx(from, to string, value *big.Int, nonce uint64, gasPrice *big.Int) *Tx {
-	return &Tx{
-		Type:     TxTransfer,
-		From:     from,
-		To:       to,
-		Value:    value,
-		Gas:      21000,
-		GasPrice: gasPrice,
-		Nonce:    nonce,
-	}
-}
-
-// NewAgentRegisterTx creates an agent registration transaction.
-func NewAgentRegisterTx(from string, did AgentDID, nonce uint64, gasPrice *big.Int) *Tx {
-	data, _ := json.Marshal(did)
-	return &Tx{
-		Type:     TxAgentRegister,
-		From:     from,
-		Gas:      200000,
-		GasPrice: gasPrice,
-		Nonce:    nonce,
-		Data:     data,
-	}
-}
-
-// NewAgentMessageTx creates an agent message transaction.
-func NewAgentMessageTx(from string, msg AgentMessage, nonce uint64, gasPrice *big.Int) *Tx {
-	data, _ := json.Marshal(msg)
-	return &Tx{
-		Type:     TxAgentMessage,
-		From:     from,
-		Gas:      50000,
-		GasPrice: gasPrice,
-		Nonce:    nonce,
-		Data:     data,
-	}
-}
-
-// NewInferenceReceiptTx creates an inference receipt submission transaction.
-func NewInferenceReceiptTx(from string, receipt InferenceReceipt, nonce uint64, gasPrice *big.Int) *Tx {
-	data, _ := json.Marshal(receipt)
-	return &Tx{
-		Type:     TxInferenceReceipt,
-		From:     from,
-		Gas:      100000,
-		GasPrice: gasPrice,
-		Nonce:    nonce,
-		Data:     data,
-	}
-}
+const(MsgTask MessageType="TASK";MsgResult MessageType="RESULT";MsgDelegate MessageType="DELEGATE";MsgRevoke MessageType="REVOKE")
+type AgentMessage struct{From string;To string;Type MessageType;Payload []byte;Nonce uint64}
+type InferenceReceipt struct{AgentID string;ModelHash []byte;InputHash []byte;OutputHash []byte;Timestamp int64;ProverSig []byte}
+type A2HTaskStatus uint8
+const(A2HOpen A2HTaskStatus=iota;A2HClaimed;A2HComplete;A2HDisputed;A2HExpired)
+type A2HTask struct{ID string;AgentID string;Title string;Description string;Skills []string;Reward *big.Int;Deadline uint64;Assignee string;Status A2HTaskStatus;CreatedAt uint64}
+func(t *A2HTask)ComputeID()string{cp:=*t;cp.ID="";b,_:=json.Marshal(cp);h:=sha256.Sum256(b);return "task_"+hex.EncodeToString(h[:])}
+type Tx struct{Type TxType;From string;To string;Value *big.Int;Gas uint64;GasPrice *big.Int;Nonce uint64;ChainID uint64;Data json.RawMessage;PublicKey []byte;Signature []byte}
+func(tx *Tx)Hash()[32]byte{cp:=*tx;cp.Signature=nil;b,_:=json.Marshal(cp);return sha256.Sum256(b)}
+func AddressFromPublicKey(pub ed25519.PublicKey)string{h:=sha256.Sum256(pub);return "0x"+hex.EncodeToString(h[len(h)-20:])}
+func(tx *Tx)SigningBytes()[]byte{h:=tx.Hash();return h[:]}
+func(tx *Tx)Sign(priv ed25519.PrivateKey)error{if len(priv)!=ed25519.PrivateKeySize{return ErrInvalidPublicKey};pub:=priv.Public().(ed25519.PublicKey);tx.PublicKey=append([]byte(nil),pub...);if tx.From==""{tx.From=AddressFromPublicKey(pub)};if tx.From!=AddressFromPublicKey(pub){return ErrInvalidAddress};tx.Signature=ed25519.Sign(priv,tx.SigningBytes());return nil}
+func(tx *Tx)VerifySignature()error{if len(tx.PublicKey)!=ed25519.PublicKeySize||len(tx.Signature)!=ed25519.SignatureSize{return ErrInvalidSignature};pub:=ed25519.PublicKey(tx.PublicKey);if tx.From!=AddressFromPublicKey(pub){return ErrInvalidAddress};if !ed25519.Verify(pub,tx.SigningBytes(),tx.Signature){return ErrInvalidSignature};if tx.ChainID!=ChainID{return errors.New("wrong chain id")};if tx.Value!=nil&&tx.Value.Sign()<0{return ErrInvalidValue};return nil}
+func NewTransferTx(from,to string,value *big.Int,nonce uint64,gasPrice *big.Int)*Tx{return &Tx{Type:TxTransfer,From:from,To:to,Value:new(big.Int).Set(value),Gas:21000,GasPrice:new(big.Int).Set(gasPrice),Nonce:nonce,ChainID:ChainID}}
+func NewAgentRegisterTx(from string,did AgentDID,nonce uint64,gasPrice *big.Int)*Tx{b,_:=json.Marshal(did);return &Tx{Type:TxAgentRegister,From:from,Gas:200000,GasPrice:new(big.Int).Set(gasPrice),Nonce:nonce,ChainID:ChainID,Data:b}}
+func NewAgentMessageTx(from string,msg AgentMessage,nonce uint64,gasPrice *big.Int)*Tx{b,_:=json.Marshal(msg);return &Tx{Type:TxAgentMessage,From:from,Gas:50000,GasPrice:new(big.Int).Set(gasPrice),Nonce:nonce,ChainID:ChainID,Data:b}}
+func NewInferenceReceiptTx(from string,r InferenceReceipt,nonce uint64,gasPrice *big.Int)*Tx{b,_:=json.Marshal(r);return &Tx{Type:TxInferenceReceipt,From:from,Gas:100000,GasPrice:new(big.Int).Set(gasPrice),Nonce:nonce,ChainID:ChainID,Data:b}}
