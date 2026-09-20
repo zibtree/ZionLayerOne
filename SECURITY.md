@@ -1,81 +1,42 @@
 # Security Policy
 
-**ZION — Zero-Knowledge Intelligence Operations Network**
+**ZionLayer security policy — September 2026**
 
-ZionLayer is infrastructure. Security is not a feature — it is the foundation. If you discover a vulnerability, please do not open a public GitHub issue.
+ZionLayer is early-stage protocol infrastructure. The current repository is a development prototype and should **not** be used to custody production funds.
 
----
+## Responsible disclosure
 
-## Responsible Disclosure
+Please report vulnerabilities privately rather than opening a public issue.
 
 **Email:** security@zionlayer.io
 
-Include in your report:
-- Clear description of the vulnerability
-- Steps to reproduce
-- Affected components and versions
-- Potential impact assessment
-- Suggested fix (if you have one)
+Include the vulnerability description, reproduction steps, affected component/version, impact assessment, proof of concept where safe, and suggested mitigation.
 
-We will acknowledge within **48 hours** and aim to resolve critical issues within **7 days**.
+We aim to acknowledge reports within 48 hours and coordinate remediation based on severity.
 
-We will not pursue legal action against researchers who disclose responsibly and in good faith.
+## Priority security areas
 
----
+- consensus safety and liveness
+- double-spend prevention
+- transaction authentication
+- nonce/replay protection
+- deterministic state transitions
+- state persistence
+- AVM sandbox escapes
+- gas exhaustion
+- A2H escrow integrity
+- inference receipt forgery
+- RPC denial of service
+- SDK key handling
 
-## Bug Bounty
+## Current limitations
 
-| Severity | Examples | Reward |
-|---|---|---|
-| **Critical** | Consensus break, double-spend, fund theft, AVM escape | 50,000 – 200,000 ZIO |
-| **High** | Node crash, state corruption, validator slashing bypass | 10,000 – 50,000 ZIO |
-| **Medium** | DoS vector, mempool manipulation, RPC abuse | 1,000 – 10,000 ZIO |
-| **Low** | Minor issues, information disclosure | 100 – 1,000 ZIO |
-
-Bounties are paid in $ZIO from the treasury. We reserve the right to adjust rewards based on impact and quality of report.
-
----
+Networked BFT quorum certificates, validator signature verification, slashing, production WASM sandboxing, cryptographic inference verification, and decentralized A2H dispute arbitration remain under development.
 
 ## Scope
 
-**In scope:**
-- ZionLayer node (`ziond`)
-- ZionBFT consensus logic
-- Agent Virtual Machine (AVM) and precompiles
-- A2H escrow and arbitration contracts
-- JSON-RPC and WebSocket API
-- Python SDK (`zionlayer`)
-- TypeScript SDK (`@zionlayer/sdk`)
+In scope: ZionLayer node, consensus, state and transaction execution, AVM, A2H, JSON-RPC, and official SDKs.
 
-**Out of scope:**
-- ZionScan front-end UI cosmetic bugs
-- Third-party dependencies (report upstream)
-- Theoretical attacks without a working proof-of-concept
-- Issues in infrastructure not operated by ZionLayer
+Out of scope: third-party infrastructure not controlled by ZionLayer and purely theoretical reports without actionable impact.
 
----
-
-## Disclosure Timeline
-
-| Stage | Target |
-|---|---|
-| Acknowledgement | 48 hours |
-| Initial assessment | 5 business days |
-| Fix development | Critical: 7 days / High: 30 days / Medium: 90 days |
-| Public disclosure | Coordinated with reporter |
-
----
-
-## PGP Key
-
-For sensitive reports, encrypt your email to:
-
-```
-security@zionlayer.io
-```
-
-PGP key available on request via Discord or email.
-
----
-
-*ZION — Zero-Knowledge Intelligence Operations Network. MIT License.*
+*ZionLayer — security is a protocol requirement, not a marketing claim.*
