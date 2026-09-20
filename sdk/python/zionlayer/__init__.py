@@ -1,5 +1,5 @@
 """
-zionlayer — Python SDK for ZionLayer
+zionlayer — Python SDK for ZionLayer\n\nProtocol baseline: September 2026
 """
 from __future__ import annotations
 
@@ -115,7 +115,7 @@ class AgentsAPI:
             metadata=metadata or {},
         )
         tx = {
-            "type": 2,
+            "type": 1,  # TxAgentRegister
             "from": wallet.address,
             "gas": 200000,
             "gasPrice": "1000000000",
@@ -134,7 +134,7 @@ class AgentsAPI:
         msg.nonce = self._nonce(wallet.address)
         payload = asdict(msg)
         tx = {
-            "type": 3,
+            "type": 2,  # TxAgentMessage
             "from": wallet.address,
             "gas": 50000,
             "gasPrice": "1000000000",

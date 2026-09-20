@@ -1,5 +1,5 @@
 /**
- * @zionlayer/sdk — TypeScript SDK for ZionLayer
+ * @zionlayer/sdk — TypeScript SDK for ZionLayer\n * Protocol baseline: September 2026
  */
 
 export interface AgentCapability {
@@ -89,7 +89,7 @@ export class AgentsAPI {
       metadata,
     };
     const tx = {
-      type: 2, // TxAgentRegister
+      type: 1, // TxAgentRegister
       from: wallet.address,
       gas: 200000,
       gasPrice: '1000000000',
@@ -113,7 +113,7 @@ export class AgentsAPI {
     const nonce = await this.getNonce(wallet.address);
     const fullMsg: AgentMessage = { ...msg, nonce };
     const tx = {
-      type: 3, // TxAgentMessage
+      type: 2, // TxAgentMessage
       from: wallet.address,
       gas: 50000,
       gasPrice: '1000000000',
