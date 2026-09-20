@@ -1,5 +1,4 @@
-package transaction
-
+// Package transaction defines signed, chain-bound ZionLayer transactions.\n// Protocol baseline: September 2026.\npackage transaction\n
 import ("crypto/ed25519";"crypto/sha256";"encoding/hex";"encoding/json";"errors";"math/big")
 type TxType uint8
 const (TxTransfer TxType=iota;TxAgentRegister;TxAgentMessage;TxAgentDelegate;TxDeployContract;TxCallContract;TxInferenceReceipt;TxValidatorStake;TxValidatorUnstake;TxA2HPost;TxA2HClaim;TxA2HComplete)

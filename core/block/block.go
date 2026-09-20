@@ -1,5 +1,4 @@
-package block
-import("crypto/sha256";"encoding/json";"time";"github.com/zionlayer/zionlayer/core/transaction")
+// Package block defines deterministic ZionLayer block structures and roots.\n// Protocol baseline: September 2026.\npackage block\nimport("crypto/sha256";"encoding/json";"time";"github.com/zionlayer/zionlayer/core/transaction")
 type Header struct{Version uint32;Height uint64;Timestamp int64;PrevHash [32]byte;StateRoot [32]byte;TxRoot [32]byte;AgentRoot [32]byte;ValidatorAddr []byte;Signature []byte}
 type Block struct{Header Header;Txs []*transaction.Tx}
 func NewBlock(h uint64,p [32]byte,v []byte,t []*transaction.Tx)*Block{return &Block{Header:Header{Version:1,Height:h,Timestamp:time.Now().UnixNano(),PrevHash:p,ValidatorAddr:append([]byte(nil),v...)},Txs:t}}

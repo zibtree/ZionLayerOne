@@ -1,5 +1,4 @@
-package state
-import("crypto/sha256";"encoding/json";"errors";"math/big";"os";"sort";"sync";"github.com/zionlayer/zionlayer/core/transaction")
+// Package state provides deterministic account, agent, message, and A2H state.\n// Protocol baseline: September 2026.\npackage state\nimport("crypto/sha256";"encoding/json";"errors";"math/big";"os";"sort";"sync";"github.com/zionlayer/zionlayer/core/transaction")
 var(ErrAccountNotFound=errors.New("account not found");ErrInsufficientBalance=errors.New("insufficient balance");ErrAgentNotFound=errors.New("agent not found");ErrAgentAlreadyRegistered=errors.New("agent already registered");ErrTaskNotFound=errors.New("task not found");ErrTaskNotOpen=errors.New("task is not open");ErrTaskNotAssignee=errors.New("caller is not the assignee");ErrDeadlinePassed=errors.New("task deadline passed"))
 type Account struct{Address string;Balance *big.Int;Nonce uint64;Code []byte}
 type AgentRecord struct{DID transaction.AgentDID;RegisteredAt uint64;MessageCount uint64;Active bool}

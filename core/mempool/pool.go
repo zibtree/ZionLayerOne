@@ -1,5 +1,4 @@
-package mempool
-import("errors";"sort";"sync";"github.com/zionlayer/zionlayer/core/transaction")
+// Package mempool provides bounded, signature-checked transaction admission.\n// Protocol baseline: September 2026.\npackage mempool\nimport("errors";"sort";"sync";"github.com/zionlayer/zionlayer/core/transaction")
 const MaxPoolSize=10000
 var(ErrPoolFull=errors.New("mempool is full");ErrDuplicateTx=errors.New("duplicate transaction"))
 type Pool struct{mu sync.RWMutex;txs map[[32]byte]*transaction.Tx}

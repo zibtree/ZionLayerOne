@@ -1,3 +1,3 @@
-package transaction
-import("crypto/ed25519";"crypto/rand";"math/big";"testing")
+// Cryptographic transaction regression coverage for the September 2026 protocol baseline.\npackage transaction\nimport("crypto/ed25519";"crypto/rand";"math/big";"testing")
 func TestTransactionSignature(t *testing.T){pub,priv,e:=ed25519.GenerateKey(rand.Reader);if e!=nil{t.Fatal(e)};tx:=NewTransferTx(AddressFromPublicKey(pub),"0xrecipient",big.NewInt(10),0,big.NewInt(1));if e=tx.Sign(priv);e!=nil{t.Fatal(e)};if e=tx.VerifySignature();e!=nil{t.Fatal(e)};tx.Value=big.NewInt(11);if e=tx.VerifySignature();e==nil{t.Fatal("tampered transaction verified")}}
+\nfunc TestChainIDBinding(t *testing.T) {\n pub, priv, err := ed25519.GenerateKey(rand.Reader)\n if err != nil { t.Fatal(err) }\n tx := NewTransferTx(AddressFromPublicKey(pub), "0xrecipient", big.NewInt(1), 0, big.NewInt(1))\n if err := tx.Sign(priv); err != nil { t.Fatal(err) }\n tx.ChainID = ChainID + 1\n if err := tx.VerifySignature(); err == nil { t.Fatal("wrong chain id accepted") }\n}\n
