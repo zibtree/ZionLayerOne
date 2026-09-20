@@ -1,139 +1,27 @@
 package state
-
-import (
-	"encoding/json"
-	"errors"
-	"math/big"
-	"sync"
-
-	"github.com/zionlayer/zionlayer/core/transaction"
-)
-
-var (
-	ErrAccountNotFound = errors.New("account not found")
-	ErrInsufficientBalance = errors.New("insufficient balance")
-	ErrAgentNotFound = errors.New("agent not found")
-	ErrAgentAlreadyRegistered = errors.New("agent already registered")
-)
-
-// Account holds the state of an address.
-type Account struct {
-	Address string   `json:"address"`
-	Balance *big.Int `json:"balance"`
-	Nonce   uint64   `json:"nonce"`
-	Code    []byte   `json:"code,omitempty"` // AVM bytecode if contract
-}
-
-// AgentRecord stores on-chain agent metadata.
-type AgentRecord struct {
-	DID          transaction.AgentDID `json:"did"`
-	RegisteredAt uint64               `json:"registeredAt"` // block height
-	MessageCount uint64               `json:"messageCount"`
-	Active       bool                 `json:"active"`
-}
-
-// StateDB is the in-memory world state.
-// In production this wraps an iavl MerkleTrie.
-type StateDB struct {
-	mu       sync.RWMutex
-	accounts map[string]*Account
-	agents   map[string]*AgentRecord // keyed by DID.ID
-	messages []transaction.AgentMessage
-}
-
-// NewStateDB initializes a fresh StateDB.
-func NewStateDB() *StateDB {
-	return &StateDB{
-		accounts: make(map[string]*Account),
-		agents:   make(map[string]*AgentRecord),
-	}
-}
-
-// GetAccount returns the account for an address, creating it if needed.
-func (s *StateDB) GetAccount(addr string) *Account {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	acc, ok := s.accounts[addr]
-	if !ok {
-		return &Account{Address: addr, Balance: big.NewInt(0)}
-	}
-	return acc
-}
-
-// SetBalance sets the balance for an address.
-func (s *StateDB) SetBalance(addr string, balance *big.Int) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	acc := s.getOrCreate(addr)
-	acc.Balance = new(big.Int).Set(balance)
-}
-
-// Transfer moves value from one address to another.
-func (s *StateDB) Transfer(from, to string, value *big.Int) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	src := s.getOrCreate(from)
-	if src.Balance.Cmp(value) < 0 {
-		return ErrInsufficientBalance
-	}
-	dst := s.getOrCreate(to)
-	src.Balance.Sub(src.Balance, value)
-	dst.Balance.Add(dst.Balance, value)
-	return nil
-}
-
-// RegisterAgent registers a new AgentDID on-chain.
-func (s *StateDB) RegisterAgent(did transaction.AgentDID, blockHeight uint64) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if _, exists := s.agents[did.ID]; exists {
-		return ErrAgentAlreadyRegistered
-	}
-	s.agents[did.ID] = &AgentRecord{
-		DID:          did,
-		RegisteredAt: blockHeight,
-		Active:       true,
-	}
-	return nil
-}
-
-// GetAgent returns the agent record for a DID.
-func (s *StateDB) GetAgent(didID string) (*AgentRecord, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	rec, ok := s.agents[didID]
-	if !ok {
-		return nil, ErrAgentNotFound
-	}
-	return rec, nil
-}
-
-// StoreMessage appends an agent message to the log.
-func (s *StateDB) StoreMessage(msg transaction.AgentMessage) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.messages = append(s.messages, msg)
-	if rec, ok := s.agents[msg.From]; ok {
-		rec.MessageCount++
-	}
-}
-
-// Snapshot serializes the full state to JSON (simplified; production uses MerkleTrie).
-func (s *StateDB) Snapshot() ([]byte, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	type snap struct {
-		Accounts map[string]*Account      `json:"accounts"`
-		Agents   map[string]*AgentRecord  `json:"agents"`
-	}
-	return json.Marshal(snap{Accounts: s.accounts, Agents: s.agents})
-}
-
-func (s *StateDB) getOrCreate(addr string) *Account {
-	if acc, ok := s.accounts[addr]; ok {
-		return acc
-	}
-	acc := &Account{Address: addr, Balance: big.NewInt(0)}
-	s.accounts[addr] = acc
-	return acc
-}
+import("crypto/sha256";"encoding/json";"errors";"math/big";"os";"sort";"sync";"github.com/zionlayer/zionlayer/core/transaction")
+var(ErrAccountNotFound=errors.New("account not found");ErrInsufficientBalance=errors.New("insufficient balance");ErrAgentNotFound=errors.New("agent not found");ErrAgentAlreadyRegistered=errors.New("agent already registered");ErrTaskNotFound=errors.New("task not found");ErrTaskNotOpen=errors.New("task is not open");ErrTaskNotAssignee=errors.New("caller is not the assignee");ErrDeadlinePassed=errors.New("task deadline passed"))
+type Account struct{Address string;Balance *big.Int;Nonce uint64;Code []byte}
+type AgentRecord struct{DID transaction.AgentDID;RegisteredAt uint64;MessageCount uint64;Active bool}
+type StateDB struct{mu sync.RWMutex;accounts map[string]*Account;agents map[string]*AgentRecord;messages []transaction.AgentMessage;tasks map[string]*transaction.A2HTask}
+func NewStateDB()*StateDB{return &StateDB{accounts:map[string]*Account{},agents:map[string]*AgentRecord{},tasks:map[string]*transaction.A2HTask{}}}
+func(a *Account)clone()*Account{return &Account{Address:a.Address,Balance:new(big.Int).Set(a.Balance),Nonce:a.Nonce,Code:append([]byte(nil),a.Code...)}}
+func(s *StateDB)GetAccount(addr string)*Account{s.mu.Lock();defer s.mu.Unlock();return s.getOrCreate(addr).clone()}
+func(s *StateDB)GetNonce(addr string)uint64{s.mu.RLock();defer s.mu.RUnlock();if a,ok:=s.accounts[addr];ok{return a.Nonce};return 0}
+func(s *StateDB)SetBalance(addr string,b *big.Int){s.mu.Lock();defer s.mu.Unlock();s.getOrCreate(addr).Balance=new(big.Int).Set(b)}
+func(s *StateDB)Transfer(from,to string,v *big.Int)error{if v==nil||v.Sign()<0{return transaction.ErrInvalidValue};s.mu.Lock();defer s.mu.Unlock();src:=s.getOrCreate(from);if src.Balance.Cmp(v)<0{return ErrInsufficientBalance};dst:=s.getOrCreate(to);src.Balance.Sub(src.Balance,v);dst.Balance.Add(dst.Balance,v);return nil}
+func(s *StateDB)ApplyNonce(addr string,nonce uint64)error{s.mu.Lock();defer s.mu.Unlock();a:=s.getOrCreate(addr);if nonce!=a.Nonce{return errors.New("invalid nonce")};a.Nonce++;return nil}
+func(s *StateDB)RegisterAgent(d transaction.AgentDID,h uint64)error{s.mu.Lock();defer s.mu.Unlock();if d.ID==""||d.Controller==""||len(d.PublicKey)==0{return errors.New("invalid agent DID")};if _,ok:=s.agents[d.ID];ok{return ErrAgentAlreadyRegistered};s.agents[d.ID]=&AgentRecord{DID:d,RegisteredAt:h,Active:true};return nil}
+func(s *StateDB)GetAgent(id string)(*AgentRecord,error){s.mu.RLock();defer s.mu.RUnlock();r,ok:=s.agents[id];if !ok{return nil,ErrAgentNotFound};cp:=*r;return &cp,nil}
+func(s *StateDB)StoreMessage(m transaction.AgentMessage){s.mu.Lock();defer s.mu.Unlock();s.messages=append(s.messages,m);if r,ok:=s.agents[m.From];ok{r.MessageCount++}}
+func(s *StateDB)PostTask(t *transaction.A2HTask,h uint64)error{if t.Reward==nil||t.Reward.Sign()<=0{return transaction.ErrInvalidValue};if t.Deadline<=h{return ErrDeadlinePassed};t.CreatedAt=h;t.Status=transaction.A2HOpen;t.Assignee="";t.ID=t.ComputeID();s.mu.Lock();defer s.mu.Unlock();if _,ok:=s.tasks[t.ID];ok{return errors.New("task already exists")};s.tasks[t.ID]=cloneTask(t);return nil}
+func(s *StateDB)GetTask(id string)(*transaction.A2HTask,error){s.mu.RLock();defer s.mu.RUnlock();t,ok:=s.tasks[id];if !ok{return nil,ErrTaskNotFound};return cloneTask(t),nil}
+func(s *StateDB)ClaimTask(id,assignee string,h uint64)error{s.mu.Lock();defer s.mu.Unlock();t,ok:=s.tasks[id];if !ok{return ErrTaskNotFound};if t.Status!=transaction.A2HOpen{return ErrTaskNotOpen};if h>=t.Deadline{t.Status=transaction.A2HExpired;return ErrDeadlinePassed};t.Assignee=assignee;t.Status=transaction.A2HClaimed;return nil}
+func(s *StateDB)CompleteTask(id,assignee string)(*transaction.A2HTask,error){s.mu.Lock();defer s.mu.Unlock();t,ok:=s.tasks[id];if !ok{return nil,ErrTaskNotFound};if t.Status!=transaction.A2HClaimed{return nil,ErrTaskNotOpen};if t.Assignee!=assignee{return nil,ErrTaskNotAssignee};t.Status=transaction.A2HComplete;return cloneTask(t),nil}
+func cloneTask(t *transaction.A2HTask)*transaction.A2HTask{cp:=*t;cp.Reward=new(big.Int).Set(t.Reward);cp.Skills=append([]string(nil),t.Skills...);return &cp}
+func(s *StateDB)RootHash()[32]byte{s.mu.RLock();defer s.mu.RUnlock();type av struct{A string;B string;N uint64};a:=make([]av,0,len(s.accounts));for _,x:=range s.accounts{a=append(a,av{x.Address,x.Balance.String(),x.Nonce})};sort.Slice(a,func(i,j int)bool{return a[i].A<a[j].A});ag:=make([]*AgentRecord,0,len(s.agents));for _,x:=range s.agents{ag=append(ag,x)};sort.Slice(ag,func(i,j int)bool{return ag[i].DID.ID<ag[j].DID.ID});ts:=make([]*transaction.A2HTask,0,len(s.tasks));for _,x:=range s.tasks{ts=append(ts,x)};sort.Slice(ts,func(i,j int)bool{return ts[i].ID<ts[j].ID});b,_:=json.Marshal(struct{A []av;G []*AgentRecord;T []*transaction.A2HTask;M []transaction.AgentMessage}{a,ag,ts,s.messages});return sha256.Sum256(b)}
+type snapshot struct{Accounts map[string]*Account;Agents map[string]*AgentRecord;Messages []transaction.AgentMessage;Tasks map[string]*transaction.A2HTask}
+func(s *StateDB)Snapshot()([]byte,error){s.mu.RLock();defer s.mu.RUnlock();return json.Marshal(snapshot{s.accounts,s.agents,s.messages,s.tasks})}
+func(s *StateDB)Save(path string)error{b,e:=s.Snapshot();if e!=nil{return e};return os.WriteFile(path,b,0600)}
+func Load(path string)(*StateDB,error){b,e:=os.ReadFile(path);if e!=nil{return nil,e};var x snapshot;if e=json.Unmarshal(b,&x);e!=nil{return nil,e};if x.Accounts==nil{x.Accounts=map[string]*Account{}};if x.Agents==nil{x.Agents=map[string]*AgentRecord{}};if x.Tasks==nil{x.Tasks=map[string]*transaction.A2HTask{}};return &StateDB{accounts:x.Accounts,agents:x.Agents,messages:x.Messages,tasks:x.Tasks},nil}
+func(s *StateDB)getOrCreate(a string)*Account{if x,ok:=s.accounts[a];ok{return x};x:=&Account{Address:a,Balance:big.NewInt(0)};s.accounts[a]=x;return x}

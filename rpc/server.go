@@ -1,141 +1,15 @@
 package rpc
-
-import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-
-	"github.com/zionlayer/zionlayer/core/mempool"
-	"github.com/zionlayer/zionlayer/core/state"
-	"github.com/zionlayer/zionlayer/core/transaction"
-	"go.uber.org/zap"
-)
-
-// Request is a JSON-RPC 2.0 request.
-type Request struct {
-	JSONRPC string          `json:"jsonrpc"`
-	Method  string          `json:"method"`
-	Params  json.RawMessage `json:"params"`
-	ID      interface{}     `json:"id"`
-}
-
-// Response is a JSON-RPC 2.0 response.
-type Response struct {
-	JSONRPC string      `json:"jsonrpc"`
-	Result  interface{} `json:"result,omitempty"`
-	Error   *RPCError   `json:"error,omitempty"`
-	ID      interface{} `json:"id"`
-}
-
-// RPCError represents a JSON-RPC error object.
-type RPCError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-// Server is the ZionLayer JSON-RPC server.
-type Server struct {
-	state   *state.StateDB
-	pool    *mempool.Pool
-	logger  *zap.Logger
-	port    int
-}
-
-// NewServer creates a new RPC server.
-func NewServer(stateDB *state.StateDB, pool *mempool.Pool, logger *zap.Logger, port int) *Server {
-	return &Server{state: stateDB, pool: pool, logger: logger, port: port}
-}
-
-// Start begins listening for RPC requests.
-func (s *Server) Start() error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.handle)
-	mux.HandleFunc("/health", s.health)
-	addr := fmt.Sprintf(":%d", s.port)
-	s.logger.Info("RPC server starting", zap.String("addr", addr))
-	return http.ListenAndServe(addr, mux)
-}
-
-func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	var req Request
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, nil, -32700, "parse error")
-		return
-	}
-
-	var result interface{}
-	var rpcErr *RPCError
-
-	switch req.Method {
-	case "zion_getBalance":
-		result, rpcErr = s.getBalance(req.Params)
-	case "zion_sendTransaction":
-		result, rpcErr = s.sendTransaction(req.Params)
-	case "zion_getAgent":
-		result, rpcErr = s.getAgent(req.Params)
-	case "zion_getMempoolSize":
-		result = map[string]int{"size": s.pool.Size()}
-	case "zion_chainId":
-		result = "0x1" // chain ID 1 for devnet
-	default:
-		rpcErr = &RPCError{Code: -32601, Message: "method not found"}
-	}
-
-	resp := Response{JSONRPC: "2.0", ID: req.ID, Result: result, Error: rpcErr}
-	json.NewEncoder(w).Encode(resp)
-}
-
-func (s *Server) getBalance(params json.RawMessage) (interface{}, *RPCError) {
-	var args []string
-	if err := json.Unmarshal(params, &args); err != nil || len(args) == 0 {
-		return nil, &RPCError{Code: -32602, Message: "invalid params"}
-	}
-	acc := s.state.GetAccount(args[0])
-	return map[string]string{
-		"address": acc.Address,
-		"balance": acc.Balance.String(),
-		"nonce":   fmt.Sprintf("%d", acc.Nonce),
-	}, nil
-}
-
-func (s *Server) sendTransaction(params json.RawMessage) (interface{}, *RPCError) {
-	var txs []*transaction.Tx
-	if err := json.Unmarshal(params, &txs); err != nil || len(txs) == 0 {
-		return nil, &RPCError{Code: -32602, Message: "invalid params"}
-	}
-	tx := txs[0]
-	if err := s.pool.Add(tx); err != nil {
-		return nil, &RPCError{Code: -32000, Message: err.Error()}
-	}
-	hash := tx.Hash()
-	return fmt.Sprintf("0x%x", hash), nil
-}
-
-func (s *Server) getAgent(params json.RawMessage) (interface{}, *RPCError) {
-	var args []string
-	if err := json.Unmarshal(params, &args); err != nil || len(args) == 0 {
-		return nil, &RPCError{Code: -32602, Message: "invalid params"}
-	}
-	rec, err := s.state.GetAgent(args[0])
-	if err != nil {
-		return nil, &RPCError{Code: -32000, Message: err.Error()}
-	}
-	return rec, nil
-}
-
-func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-}
-
-func writeError(w http.ResponseWriter, id interface{}, code int, msg string) {
-	resp := Response{
-		JSONRPC: "2.0",
-		ID:      id,
-		Error:   &RPCError{Code: code, Message: msg},
-	}
-	json.NewEncoder(w).Encode(resp)
-}
+import("encoding/json";"fmt";"net/http";"time";"github.com/zionlayer/zionlayer/core/mempool";"github.com/zionlayer/zionlayer/core/state";"github.com/zionlayer/zionlayer/core/transaction";"go.uber.org/zap")
+type Request struct{JSONRPC string;Method string;Params json.RawMessage;ID interface{}}
+type Response struct{JSONRPC string;Result interface{};Error *RPCError;ID interface{}}
+type RPCError struct{Code int;Message string}
+type Server struct{state *state.StateDB;pool *mempool.Pool;logger *zap.Logger;port int}
+func NewServer(s *state.StateDB,p *mempool.Pool,l *zap.Logger,port int)*Server{return &Server{state:s,pool:p,logger:l,port:port}}
+func(s *Server)Start()error{mux:=http.NewServeMux();mux.HandleFunc("/health",s.health);mux.HandleFunc("/",s.handle);srv:=&http.Server{Addr:fmt.Sprintf(":%d",s.port),Handler:http.MaxBytesHandler(mux,2<<20),ReadHeaderTimeout:5*time.Second,ReadTimeout:15*time.Second,WriteTimeout:15*time.Second,IdleTimeout:60*time.Second};return srv.ListenAndServe()}
+func(s *Server)handle(w http.ResponseWriter,r *http.Request){w.Header().Set("Content-Type","application/json");if r.Method!="POST"{http.Error(w,"POST required",405);return};var q Request;if e:=json.NewDecoder(r.Body).Decode(&q);e!=nil{writeError(w,nil,-32700,"parse error");return};if q.JSONRPC!="2.0"{writeError(w,q.ID,-32600,"jsonrpc must be 2.0");return};var result interface{};var re *RPCError;switch q.Method{case"zion_getBalance":result,re=s.getBalance(q.Params);case"zion_sendTransaction":result,re=s.sendTransaction(q.Params);case"zion_getAgent":result,re=s.getAgent(q.Params);case"zion_getTask":result,re=s.getTask(q.Params);case"zion_getMempoolSize":result=map[string]int{"size":s.pool.Size()};case"zion_chainId":result="0x1";default:re=&RPCError{-32601,"method not found"}};json.NewEncoder(w).Encode(Response{"2.0",result,re,q.ID})}
+func(s *Server)getBalance(p json.RawMessage)(interface{},*RPCError){var a []string;if e:=json.Unmarshal(p,&a);e!=nil||len(a)!=1{return nil,&RPCError{-32602,"invalid params"}};x:=s.state.GetAccount(a[0]);return map[string]string{"address":x.Address,"balance":x.Balance.String(),"nonce":fmt.Sprintf("%d",x.Nonce)},nil}
+func(s *Server)sendTransaction(p json.RawMessage)(interface{},*RPCError){var a []*transaction.Tx;if e:=json.Unmarshal(p,&a);e!=nil||len(a)!=1{return nil,&RPCError{-32602,"invalid params"}};if e:=s.pool.Add(a[0]);e!=nil{return nil,&RPCError{-32000,e.Error()}};return fmt.Sprintf("0x%x",a[0].Hash()),nil}
+func(s *Server)getAgent(p json.RawMessage)(interface{},*RPCError){var a []string;if e:=json.Unmarshal(p,&a);e!=nil||len(a)!=1{return nil,&RPCError{-32602,"invalid params"}};x,e:=s.state.GetAgent(a[0]);if e!=nil{return nil,&RPCError{-32000,e.Error()}};return x,nil}
+func(s *Server)getTask(p json.RawMessage)(interface{},*RPCError){var a []string;if e:=json.Unmarshal(p,&a);e!=nil||len(a)!=1{return nil,&RPCError{-32602,"invalid params"}};x,e:=s.state.GetTask(a[0]);if e!=nil{return nil,&RPCError{-32000,e.Error()}};return x,nil}
+func(s *Server)health(w http.ResponseWriter,r *http.Request){json.NewEncoder(w).Encode(map[string]string{"status":"ok"})}
+func writeError(w http.ResponseWriter,id interface{},c int,m string){json.NewEncoder(w).Encode(Response{"2.0",nil,&RPCError{c,m},id})}
