@@ -14,7 +14,7 @@ type InferenceReceipt struct{AgentID string;ModelHash []byte;InputHash []byte;Ou
 type A2HTaskStatus uint8
 const(A2HOpen A2HTaskStatus=iota;A2HClaimed;A2HComplete;A2HDisputed;A2HExpired)
 type A2HTask struct{ID string;AgentID string;Title string;Description string;Skills []string;Reward *big.Int;Deadline uint64;Assignee string;Status A2HTaskStatus;CreatedAt uint64}
-func(t *A2HTask)ComputeID()string{cp:=*t;cp.ID="";b,_:=json.Marshal(cp);h:=sha256.Sum256(b);return "task_"+hex.EncodeToString(h[:])}
+func(t *A2HTask)ComputeID()string{b,_:=json.Marshal(struct{AgentID,Title,Description string;Skills []string;Reward *big.Int;Deadline uint64}{t.AgentID,t.Title,t.Description,t.Skills,t.Reward,t.Deadline});h:=sha256.Sum256(b);return "task_"+hex.EncodeToString(h[:])}
 type Tx struct{Type TxType;From string;To string;Value *big.Int;Gas uint64;GasPrice *big.Int;Nonce uint64;ChainID uint64;Data json.RawMessage;PublicKey []byte;Signature []byte}
 func(tx *Tx)Hash()[32]byte{cp:=*tx;cp.Signature=nil;b,_:=json.Marshal(cp);return sha256.Sum256(b)}
 func AddressFromPublicKey(pub ed25519.PublicKey)string{h:=sha256.Sum256(pub);return "0x"+hex.EncodeToString(h[len(h)-20:])}
